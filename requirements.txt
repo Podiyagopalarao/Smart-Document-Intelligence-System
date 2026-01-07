@@ -1,0 +1,8 @@
+flask
+pdfplumber
+python-docx
+sentence-transformers
+faiss-cpu
+pandas
+numpy
+werkzeug

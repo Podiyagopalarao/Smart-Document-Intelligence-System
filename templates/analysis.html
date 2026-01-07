@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="analysis-header">
+    <div class="analysis-title">
+        <h2>Analysis Results</h2>
+        <div class="analysis-meta"><i class="fa-regular fa-file"></i> {{ filename }}</div>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="/" class="btn btn-secondary"><i class="fa-solid fa-trash"></i> Clear</a>
+        <a href="{{ url_for('download', filename=filename) }}" class="btn btn-primary"><i
+                class="fa-solid fa-download"></i> Download CSV</a>
+    </div>
+</div>
+
+<div class="search-container">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="setSearchType('semantic', this)">Semantic (AI) Search</button>
+        <button class="tab-btn" onclick="setSearchType('keyword', this)">Keyword Search</button>
+    </div>
+
+    <div class="input-group">
+        <input type="text" id="searchInput"
+            placeholder="Ask a question about the document (e.g. 'What are the payment terms?')">
+        <button id="searchBtn" class="btn btn-primary">Analyze</button>
+    </div>
+    <input type="hidden" id="searchType" value="semantic">
+</div>
+
+<div id="resultsArea">
+    <div style="text-align: center; color: var(--text-muted); padding: 3rem;">
+        <i class="fa-solid fa-magnifying-glass" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+        <p>Enter a query above to analyze the document content.</p>
+    </div>
+</div>
+
+<script>
+    document.getElementById('searchBtn').addEventListener('click', performSearch);
+    document.getElementById('searchInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+
+    function setSearchType(type, btn) {
+        document.getElementById('searchType').value = type;
+
+        // Update tabs
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Update placeholder
+        const input = document.getElementById('searchInput');
+        if (type === 'semantic') {
+            input.placeholder = "Ask a question about the document (e.g. 'What are the payment terms?')";
+        } else {
+            input.placeholder = "Enter keywords to find exact matches...";
+        }
+    }
+
+    async function performSearch() {
+        const query = document.getElementById('searchInput').value;
+        const type = document.getElementById('searchType').value;
+        const resultsArea = document.getElementById('resultsArea');
+        const filename = "{{ filename }}";
+
+        if (!query) return;
+
+        resultsArea.innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--text-muted);">Searching...</div>';
+
+        try {
+            const formData = new FormData();
+            formData.append('query', query);
+            formData.append('type', type);
+
+            const response = await fetch(`/search/${filename}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.results && data.results.length > 0) {
+                resultsArea.innerHTML = data.results.map(result => {
+                    const isAi = type === 'semantic';
+                    // Convert score to percentage
+                    const confidence = Math.round(result.score * 100);
+
+                    return `
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div>
+                                ${isAi ? '<span class="badge badge-ai"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Generated</span>' : '<span class="badge badge-page">Keyword Match</span>'}
+                                <span class="badge badge-page" style="margin-left: 0.5rem;">Page ${result.page}</span>
+                            </div>
+                            <div class="confidence-score">Relevance: ${confidence}%</div>
+                        </div>
+                        <p class="result-text">${highlightText(result.text, query, type)}</p>
+                    </div>
+                `}).join('');
+            } else {
+                resultsArea.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                        <i class="fa-regular fa-face-frown-open" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>No relevant results found. Try rephrasing your question.</p>
+                    </div>`;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            resultsArea.innerHTML = '<div class="alert">An error occurred while searching.</div>';
+        }
+    }
+
+    function highlightText(text, query, type) {
+        if (type === 'keyword') {
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<mark>$1</mark>');
+        }
+        return text;
+    }
+</script>
+{% endblock %}

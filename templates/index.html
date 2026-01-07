@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="hero">
+    <h1>Smart Document Intelligence System</h1>
+    <p>Search, analyze, and understand documents using AI.</p>
+</div>
+
+<div class="upload-container">
+    <div class="card">
+        <form action="/" method="post" enctype="multipart/form-data" class="upload-form">
+            <div class="drop-zone" id="drop-zone">
+                <div class="drop-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                <span class="drop-zone__prompt">Drag & Drop PDF or DOCX here or <span
+                        class="browse-link">Browse</span></span>
+                <input type="file" name="file" class="drop-zone__input" accept=".pdf,.docx" required>
+            </div>
+            <div style="text-align: center; margin-top: 1rem;">
+                <p style="font-size: 0.875rem; color: var(--text-muted);">Supported formats: .pdf, .docx</p>
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-microchip"></i> Analyze Document
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll(".drop-zone__input").forEach((inputElement) => {
+        const dropZoneElement = inputElement.closest(".drop-zone");
+
+        dropZoneElement.addEventListener("click", (e) => {
+            inputElement.click();
+        });
+
+        inputElement.addEventListener("change", (e) => {
+            if (inputElement.files.length) {
+                updateThumbnail(dropZoneElement, inputElement.files[0]);
+            }
+        });
+
+        dropZoneElement.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropZoneElement.classList.add("drop-zone--over");
+        });
+
+        ["dragleave", "dragend"].forEach((type) => {
+            dropZoneElement.addEventListener(type, (e) => {
+                dropZoneElement.classList.remove("drop-zone--over");
+            });
+        });
+
+        dropZoneElement.addEventListener("drop", (e) => {
+            e.preventDefault();
+
+            if (e.dataTransfer.files.length) {
+                inputElement.files = e.dataTransfer.files;
+                updateThumbnail(dropZoneElement, e.dataTransfer.files[0]);
+            }
+
+            dropZoneElement.classList.remove("drop-zone--over");
+        });
+    });
+
+    function updateThumbnail(dropZoneElement, file) {
+        let thumbnailElement = dropZoneElement.querySelector(".drop-zone__thumb");
+
+        // Remove prompt and icon
+        if (dropZoneElement.querySelector(".drop-zone__prompt")) {
+            dropZoneElement.querySelector(".drop-zone__prompt").remove();
+        }
+        if (dropZoneElement.querySelector(".drop-icon")) {
+            dropZoneElement.querySelector(".drop-icon").remove();
+        }
+
+        if (!thumbnailElement) {
+            thumbnailElement = document.createElement("div");
+            thumbnailElement.classList.add("drop-zone__thumb");
+            // Simple style for the thumbnail since it's dynamic
+            thumbnailElement.style.width = "100%";
+            thumbnailElement.style.height = "100%";
+            thumbnailElement.style.display = "flex";
+            thumbnailElement.style.alignItems = "center";
+            thumbnailElement.style.justifyContent = "center";
+            thumbnailElement.style.color = "var(--primary)";
+            thumbnailElement.style.fontWeight = "600";
+
+            dropZoneElement.appendChild(thumbnailElement);
+        }
+
+        thumbnailElement.innerText = file.name;
+    }
+</script>
+{% endblock %}
